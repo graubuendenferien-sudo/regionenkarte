@@ -14,6 +14,10 @@
   2. Fest im HTML über das Attribut data-region am <body> (siehe unten).
   Der URL-Parameter hat Vorrang.
 
+  Mehrere Regionen: mit Komma trennen, z. B.
+       regionenkarte.html?region=chur,heidiland,praettigau
+       <body data-region="chur,heidiland">
+
   Gültige Werte:
     chur, heidiland, praettigau, davos-klosters, arosa-lenzerheide,
     berguen-filisur, val-surses-savognin-bivio, viamala, flims-laax-falera,
@@ -118,18 +122,26 @@
       .replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue")
       .replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
     const param = new URLSearchParams(window.location.search).get("region");
-    let key = normalize(param || document.body.dataset.region);
-    key = ALIASES[key] || key;
-    const region = REGIONS[key];
-    if (!region) return;
+    const raw = param || document.body.dataset.region || "";
+    // Mehrere Regionen mit Komma trennen, z. B. "chur,heidiland"
+    const regions = [];
+    raw.split(",").forEach(part => {
+      let key = normalize(part);
+      key = ALIASES[key] || key;
+      const region = REGIONS[key];
+      if (region && !regions.includes(region)) regions.push(region);
+    });
+    if (!regions.length) return;
 
-    const path = map.querySelector('.region[data-index="' + region.index + '"]');
-    if (!path) return;
-    path.classList.add("is-highlighted");
-    // Hervorgehobene Region zuoberst zeichnen, damit ihr Rand nicht von Nachbarn verdeckt wird
-    path.parentNode.appendChild(path);
+    regions.forEach(region => {
+      const path = map.querySelector('.region[data-index="' + region.index + '"]');
+      if (!path) return;
+      path.classList.add("is-highlighted");
+      // Hervorgehobene Region zuoberst zeichnen, damit ihr Rand nicht von Nachbarn verdeckt wird
+      path.parentNode.appendChild(path);
+    });
     const label = document.getElementById("map-label");
-    if (label) label.textContent = "Karte von Graubünden, hervorgehoben: " + region.name;
+    if (label) label.textContent = "Karte von Graubünden, hervorgehoben: " + regions.map(r => r.name).join(", ");
   })();
 
   // Höhe an einen umgebenden iframe melden (wie im Hauptmodul)
